@@ -15,6 +15,7 @@ from vidar.utils.config import recursive_assignment
 from evaluation_utils.dataloader_wrapper import setup_dataloaders, SceneIterator, SampleIterator
 from vidar.utils.setup import setup_metrics
 from r3d3.utils import pose_matrix_to_quaternion
+import time
 
 
 def load_completion_network(cfg: Config) -> DepthCompletion:
@@ -90,13 +91,17 @@ class Evaluator:
             **{key.replace("r3d3_", ""): val for key, val in vars(self.args).items() if key.startswith("r3d3_")}
         )
 
-        for timestamp, sample in enumerate(tqdm(sample_iterator, desc='Sample', position=0, leave=True)):
+        for timestamp, sample in enumerate(sample_iterator):
+            start_time = time.time()  # Start timing
+
             pose = SE3(pose_matrix_to_quaternion(sample['pose'][0][0]).cuda())
             pose = pose.inv()
             pose_rel = (pose * pose[0:1].inv())
 
             intrinsics = sample['intrinsics'][0][0, :, [0, 1, 0, 1], [0, 1, 2, 2]]
             is_keyframe = 'depth' in sample and sample['depth'][0].max() > 0.
+
+            inference_time = time.time()  # Start timing
 
             output = r3d3.track(
                 tstamp=float(timestamp),
@@ -105,6 +110,9 @@ class Evaluator:
                 mask=(sample['mask'][0][0, :, 0] > 0).cuda() if 'mask' in sample else None,
                 pose_rel=pose_rel.data
             )
+
+            print(f"Frame {timestamp}/{len(sample_iterator)} get pose time: {(inference_time - start_time) * 1000:.2f} ms")
+            print(f"Frame {timestamp}/{len(sample_iterator)} get depth time: {(time.time() - start_time) * 1000:.2f} ms")
 
             output = {key: data.cpu() if torch.is_tensor(data) else data for key, data in output.items()}
             pred_pose = None

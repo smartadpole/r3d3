@@ -1,7 +1,7 @@
 networks:
     completion:
         recipe: networks/completion|ddad
-        checkpoint: data/models/completion/completion_ddad.ckpt
+        checkpoint: /media/hao/CODE/MODEL/DEPTH/R3D3/completion_ddad.ckpt
         pretrained_encoder: False
 evaluation:
     depth:
@@ -13,10 +13,10 @@ datasets:
     validation:
         root: [ datasets ]
         name: [ DDAD ]
-        path: [ /media/datadrive/DDAD ]
+        path: [ /media/hao/CV/DEPTH/DDAD/ddad_train_val/ ]
         split: [ val ]
         augmentation:
             resize: [ 384, 640 ]
         squeeze_sensor: [ False ]
-        labels: [ pose, depth, mask ]
+        labels: [ pose, depth ]
         cameras: [ [ 'camera_01', 'camera_05', 'camera_06', 'camera_07', 'camera_08', 'camera_09' ] ]
